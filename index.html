@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gabut Versi Fajar</title>
+  <style>
+    :root{--bg:#fff7f9;--card:#fff;--accent:#ff6b81;--muted:#6b6b6b}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--bg),#fff);padding:20px}
+    .card{width:100%;max-width:520px;background:var(--card);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.08);padding:28px;text-align:center}
+    h1{margin:0 0 10px;font-size:22px}
+    p.lead{margin:0 0 22px;color:var(--muted)}
+
+    .target{display:flex;align-items:center;flex-direction:column;gap:18px}
+    .heart{font-size:48px;color:var(--accent);transform:scale(1);transition:transform .25s}
+
+    .btns{position:relative;height:120px;width:100%;display:flex;align-items:center;justify-content:center}
+    .btn{padding:12px 22px;border-radius:999px;border:2px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;font-weight:600;user-select:none;transition:transform .12s,opacity .12s;outline:none}
+    .btn:active{transform:scale(.98)}
+    .btn-yes{background:var(--accent);color:#fff}
+
+    /* posisi untuk tombol yang bergerak */
+    .movable{position:absolute}
+
+    .footer{margin-top:16px;font-size:13px;color:#999}
+
+    /* modal */
+    .modal{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .18s}
+    .modal.show{opacity:1;pointer-events:auto}
+    .modal-card{background:#fff;padding:20px;border-radius:12px;max-width:360px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+
+    @media (max-width:420px){
+      .card{padding:18px}
+      .btns{height:140px}
+    }
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <div class="target">
+      <div class="heart">🤓</div>
+      <h1>Syamsi Ganteng Atau Tidak?</h1>
+      <p class="lead">Klik salah satu jawaban</p>
+    </div>
+
+    <div class="btns" id="area">
+      <button class="btn btn-yes" id="yes">Ya</button>
+      <button class="btn movable" id="no" style="left:calc(50% + 60px);">Tidak</button>
+    </div>
+
+    <div class="footer">GABUT BY JAY</div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <h2>Yeay 🥳</h2>
+      <p><strong>Terimakasih Banyak Cantik....</strong></p>
+      <button class="btn btn-yes" id="close">OK</button>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const noBtn = document.getElementById('no');
+      const yesBtn = document.getElementById('yes');
+      const area = document.getElementById('area');
+      const modal = document.getElementById('modal');
+      const close = document.getElementById('close');
+      const heart = document.querySelector('.heart');
+
+      // helper: get bounding rect of parent area
+      function getAreaRect(){
+        return area.getBoundingClientRect();
+      }
+
+      // place button safely inside area
+      function placeButtonAt(btn, x, y){
+        const areaRect = getAreaRect();
+        const btnRect = btn.getBoundingClientRect();
+        const padding = 8;
+        // limit so button stays fully visible
+        let left = Math.min(Math.max(x - areaRect.left - btnRect.width/2, padding), areaRect.width - btnRect.width - padding);
+        let top  = Math.min(Math.max(y - areaRect.top - btnRect.height/2, padding), areaRect.height - btnRect.height - padding);
+        btn.style.left = left + 'px';
+        btn.style.top = top + 'px';
+      }
+
+      // move to random spot
+      function moveRandom(btn){
+        const areaRect = getAreaRect();
+        const btnRect = btn.getBoundingClientRect();
+        const padding = 12;
+        const maxX = Math.max(areaRect.width - btnRect.width - padding, padding);
+        const maxY = Math.max(areaRect.height - btnRect.height - padding, padding);
+        const left = Math.floor(Math.random() * maxX) + padding;
+        const top = Math.floor(Math.random() * maxY) + padding;
+        btn.style.left = left + 'px';
+        btn.style.top = top + 'px';
+      }
+
+      // when pointer gets near the button, it jumps away
+      function handlePointer(e){
+        const rect = noBtn.getBoundingClientRect();
+        const px = e.clientX;
+        const py = e.clientY;
+        const cx = rect.left + rect.width/2;
+        const cy = rect.top + rect.height/2;
+        const dx = px - cx;
+        const dy = py - cy;
+        const dist = Math.hypot(dx,dy);
+        const threshold = Math.max(80, rect.width*1.4);
+        if(dist < threshold){
+          // move opposite direction a bit plus random
+          const areaRect = getAreaRect();
+          const moveX = (cx - px) * 1.5 + (Math.random()*120 - 60);
+          const moveY = (cy - py) * 1.2 + (Math.random()*80 - 40);
+          const targetX = rect.left + moveX - areaRect.left + rect.width/2;
+          const targetY = rect.top + moveY - areaRect.top + rect.height/2;
+          placeButtonAt(noBtn, areaRect.left + targetX, areaRect.top + targetY);
+        }
+      }
+
+      // event listeners
+      // desktop: mousemove over the card
+      area.addEventListener('mousemove', handlePointer);
+
+      // also on touch: touchmove
+      area.addEventListener('touchmove', function(e){
+        if(e.touches && e.touches[0]) handlePointer(e.touches[0]);
+      }, {passive:true});
+
+      // if user tries to click No, prevent it and jump
+      noBtn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        moveRandom(noBtn);
+      });
+
+      // If user clicks Yes -> show modal
+      yesBtn.addEventListener('click', function(){
+        modal.classList.add('show');
+        heart.style.transform = 'scale(1.18)';
+      });
+
+      close.addEventListener('click', function(){
+        modal.classList.remove('show');
+        heart.style.transform = 'scale(1)';
+      });
+
+      // initial layout: put yes centered, no to right
+      function init(){
+        const areaRect = getAreaRect();
+        // place yes button centered horizontally
+        const yesRect = yesBtn.getBoundingClientRect();
+        yesBtn.style.position = 'relative';
+        yesBtn.style.zIndex = 2;
+        // make no absolute inside area
+        noBtn.style.position = 'absolute';
+        noBtn.style.zIndex = 3;
+        // center yes (flexbox does it already), ensure no placed to right
+        const centerX = areaRect.left + areaRect.width/2 + 90;
+        const centerY = areaRect.top + areaRect.height/2;
+        placeButtonAt(noBtn, centerX, centerY - 10);
+      }
+
+      // run init and also on resize
+      window.addEventListener('load', init);
+      window.addEventListener('resize', init);
+
+      // accessibility: keyboard nav — allow focusing and pressing arrow keys to try to reach No (it will move)
+      noBtn.tabIndex = 0;
+      noBtn.addEventListener('focus', function(){ moveRandom(noBtn); });
+
+    })();
+  </script>
+</body>
+</html>
